@@ -1,0 +1,8 @@
+postgres_db = 'football-db'
+recipe_db = 'recipedb'
+google_api_key = 'AIzaSyCkZatF0NB6BHyz1lM04MUwJtzO-0gjrsE'
+google_api_key_2 = 'AIzaSyC1PdtqDpV65XXoT04BWR-bpirkol-Ax00'
+google_api_key_3 = 'AIzaSyDnPnG-ofUThagyT8N5uU5s30CrEfWGD6A'
+mapbox_api_key = 'pk.eyJ1IjoiY2hyaXNqYjEyMyIsImEiOiJjazYzb3c1MWYwN3N1M21tcHM3dWF2dzVnIn0.n5_-etybT0fF9BhFrxEnwg'
+POSTGRES_PASS = 'wEZwZuyKY8gCm3E'
+NOMIS_API_KEY = '0x1ec2040883fd62eb184669c1b21333c9264b8484'

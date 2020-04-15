@@ -1,0 +1,399 @@
+---
+title: "RPostgreSQL"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Initial setup (mac)
+
+Follow brew postgresql setup instructions, summarised below
+
+```{bash eval=F}
+brew install postgresql
+```
+
+run the following and note the resulting output
+```{bash eval = F}
+ln -sfv /usr/local/opt/postgresql/*.plist ~/Library/LaunchAgents
+```
+
+
+> /Users/chrisbailey/Library/LaunchAgents/homebrew.mxcl.postgresql.plist -> 
+> /usr/local/opt/postgresql/homebrew.mxcl.postgresql.plist
+
+using the paths output we can run:
+```{bash eval =F}
+alias pg_start="launchctl load  /Users/chrisbailey/Library/LaunchAgents/homebrew.mxcl.postgresql.plist"
+alias pg_stop="launchctl unload  /usr/local/opt/postgresql/homebrew.mxcl.postgresql.plist"
+```
+
+verify the installation worked:
+```{bash eval =F}
+createdb `whoami`
+psql
+```
+> psql (12.2)
+
+`\q` out of psql and in terminal we run:
+```{bash eval =F}
+\q
+createuser -s postgres
+createdb testdatabase
+```
+
+and list our databases
+```{bash eval=F}
+psql -U postgres -l
+```
+
+
+## Basic psql commands (in terminal)
+
+list databases:
+```{bash eval=F}
+psql -U postgres -l
+```
+
+navigate to db:
+```{bash eval=F}
+psql testdatabase
+```
+
+
+tables within our db"
+```{bash eval = F}
+\d
+```
+
+
+
+## 1. Useful postgres commands in RPostgreSQL
+
+load in the required packages
+```{r  message=F, warning=F}
+library(RPostgreSQL)
+library(DBI)
+library(dbplyr)
+```
+
+Init db connection:
+```{r}
+con <- RPostgreSQL::dbConnect(RPostgreSQL::PostgreSQL(),
+                              dbname = "testdatabase",
+                              host = 'localhost',
+                              user = "postgres",
+                              password = Sys.getenv('PG_PASS'))
+```
+
+set our environment variable with:
+```{r eval = FALSE}
+Sys.setenv('PG_PASS'='password')
+# or
+usethis::edit_r_environ()
+```
+
+### writing a table
+There are two ways we can get a data frame from R into postgreSQL. 
+
+1. make use of the `DBI` function `dbWriteTable`
+2. write the SQL ourselves and send it to the database with `dbSendQuery`
+
+
+
+Method 1 looks like this:
+```{r}
+library(dplyr)
+data(iris)
+dbWriteTable(con, 'iris_1', iris )
+tbl(con, 'iris_1')
+```
+
+#### Using glue sql 
+
+Method 2 looks like this (using glue sql):
+
+```{r}
+library(glue)
+# create the table schema
+DBI::dbSendQuery(con, 'CREATE TABLE IF NOT EXISTS iris_2 (id SERIAL PRIMARY KEY, 
+                 sepal_length NUMERIC, sepal_width NUMERIC, petal_length NUMERIC,
+                 petal_width NUMERIC, species VARCHAR(15));')
+
+
+# set up query with glue sql to insert values line by line
+iris$Species <- as.character(iris$Species)
+query <- apply(iris, 1, function(x) glue_sql("INSERT INTO iris_2 (sepal_length, sepal_width, petal_length, petal_width, species) VALUES ({x*})", .con = con))
+
+send <- sapply(query, function(x) DBI::dbSendQuery(con, x))
+
+# DBI::dbSendQuery(con, 'drop table iris_2')
+tbl(con, 'iris_2')
+```
+
+We can drop the table with:
+```{r}
+DBI::dbSendQuery(con, 'drop table iris_2;')
+```
+
+
+
+
+### Setting a primary key
+
+#### auto incrementing primary key in the schema
+In the example above we already saw how to create a primary key with the PRIMARY KEY command. SERIAL tells the id column to auto-increment with a numeric id.
+
+```{r}
+# create the table schema
+DBI::dbSendQuery(con, 'CREATE TABLE IF NOT EXISTS iris_2 (id SERIAL PRIMARY KEY, 
+                 sepal_length NUMERIC, sepal_width NUMERIC, petal_length NUMERIC,
+                 petal_width NUMERIC, species VARCHAR(15));')
+
+```
+
+#### setting a column (non auto incrementing) as primary key in the schema
+```{r}
+library(dplyr)
+iris_3 <- iris %>% janitor::clean_names() %>% tibble::as_tibble()
+# add an id column
+iris_3 <- iris_3 %>% mutate(row_number = row_number()) %>% 
+  select(row_number, sepal_length, sepal_width, petal_length, petal_width, species)
+
+# create the table schema
+DBI::dbSendQuery(con, 'CREATE TABLE IF NOT EXISTS iris_3 (row_number INTEGER CONSTRAINT row_id PRIMARY KEY, 
+                 sepal_length NUMERIC, sepal_width NUMERIC, petal_length NUMERIC,
+                 petal_width NUMERIC, species VARCHAR(15));')
+
+query <- apply(iris_3, 1, function(x) glue_sql("INSERT INTO iris_3 (row_number, sepal_length, sepal_width, petal_length, petal_width, species) VALUES ({x*}) ON CONFLICT DO NOTHING ", .con = con))
+
+send <- sapply(query, function(x) DBI::dbSendQuery(con, x))
+
+tbl(con, 'iris_3')
+```
+
+
+Where the primary key constrains the row_number column to be unique. Where the constraint is violated we can tell postgres what to do using the `ON CONFLICT` command. `DO NOTHING` skips inserting the observation; `DO UPDATE` updates the existing observation with the incoming insertion.
+
+
+
+#### Checking our primary key
+We can **check the primary key** set on the table by running the following commands in terminal:
+```{bash eval = FALSE}
+psql testdatabase
+\d iris_3
+
+
+                         Table "public.iris_3"
+    Column    |         Type          | Collation | Nullable | Default 
+--------------+-----------------------+-----------+----------+---------
+ row_number   | integer               |           | not null | 
+ sepal_length | numeric               |           |          | 
+ sepal_width  | numeric               |           |          | 
+ petal_length | numeric               |           |          | 
+ petal_width  | numeric               |           |          | 
+ species      | character varying(15) |           |          | 
+Indexes:
+    "constraint_name" PRIMARY KEY, btree (row_number)
+```
+
+
+
+#### Adding primary key to existing table from a column
+Set a new primary key constraint with the name 'iris_pk':
+```{r}
+DBI::dbSendQuery(con, 'ALTER TABLE iris_1 ADD CONSTRAINT iris_pk PRIMARY KEY ("row.names");')
+```
+
+
+#### Dropping primary keys
+We can remove the primary key constraint by the constraint name we set:
+
+```{r}
+DBI::dbSendQuery(con, "ALTER TABLE iris_1
+  DROP CONSTRAINT iris_pk;")
+```
+
+#### Other constraints
+While a primary key essentially does this, we might want to set up a constraint to ensure no records are duplicated if, for example, we are using an auto-incrementing primary key.
+
+```{r eval = F}
+# set table schema with auto-incrementing primary key
+DBI::dbSendQuery(con, 'CREATE TABLE IF NOT EXISTS population (id SERIAL PRIMARY KEY, 
+                 date VARCHAR(4), country VARCHAR(64), population NUMERIC);')
+
+# add constraint so we don't accidently add duplicate records
+DBI::dbSendQuery(con, "ALTER TABLE population ADD CONSTRAINT nodup UNIQUE (date, country, population);")
+
+# add data
+DBI::dbSendQuery(con, "INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65);")
+
+# add duplicate data
+DBI::dbSendQuery(con, "INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65);")
+
+```
+
+>Error in postgresqlExecStatement(conn, statement, ...) : RS-DBI driver: (could not Retrieve the result : ERROR: duplicate key value violates unique constraint "nodup" DETAIL: Key (date, country, population)=(2019, UK, 66.65) already exists. )
+
+Here we get an error if we try and add in a duplicate observation. We should tell postgres what to do if we get a violation of our constraint:
+
+*do nothing on violation:*
+If we want to do nothing on any constraint violation (primary key or unique constraint) then we don't need to specify a specific `ON CONSTRAINT`:
+```{r}
+# try to add data
+DBI::dbGetQuery(con, "INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65) ON CONFLICT DO NOTHING;")
+```
+
+*update violation with incoming data:*
+```{r}
+# try to add data
+DBI::dbGetQuery(con, "INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65) ON CONFLICT ON CONSTRAINT nodup DO UPDATE SET (date, country, population) = (EXCLUDED.date, EXCLUDED.country, EXCLUDED.population);")
+```
+
+*update violation with some existing data:*
+```{r}
+# try to add data
+DBI::dbGetQuery(con, "INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65) ON CONFLICT ON CONSTRAINT nodup DO UPDATE SET (date, country, population) = (population.date, population.country, EXCLUDED.population);")
+```
+
+
+
+### Querying a table
+It is obvious from the previous sections that we can send a sql query with a combination of `glue_sql` and `dbSendQuery`. We can also make use of `dplyr` syntax using:
+
+
+```{r}
+tbl(con, 'iris_3')
+```
+
+`tbl` doesn't return the full database but a sample of the result for speed purposes. If we want to return the full result so we can use the object in R for further analysis, we use `collect`:
+
+```{r}
+tbl(con, 'iris_3') %>%
+  collect()
+```
+
+
+We can use typical `dplyr` syntax to query our data as an alternative to `dbSendQuery`. `dplyr` will convert our `dplyr` syntax into SQL code!
+
+```{r}
+tbl(con, 'iris_3') %>%
+  group_by(species) %>% 
+  summarise(avg_length = mean(sepal_length)) %>% 
+  collect()
+```
+
+We can see what code was run in SQL:
+
+```{r}
+tbl(con, 'iris_3') %>%
+  group_by(species) %>% 
+  summarise(avg_length = mean(sepal_length)) %>% 
+  show_query()
+```
+
+
+## 2. POSTGIS
+
+### Set up postgis sending queries with DBGetQuery
+
+Run the following commands (or run in psql in terminal) to initialise postgis on our database:
+```{r eval = F}
+dbGetQuery(con, 'create extension postgis;')
+dbGetQuery(con, 'create extension fuzzystrmatch;')
+dbGetQuery(con, 'create extension postgis_tiger_geocoder;')
+dbGetQuery(con, 'create extension postgis_topology;')
+```
+
+#### Writing a spatial table
+Writing a spatial file to a database from R is best done using the `sf` packages and `sf::write_sf`:
+
+```{r}
+library(sf)
+uk_auth <- read_sf('https://opendata.arcgis.com/datasets/d54f953d633b45f5a82fdd3c89b4c955_0.geojson')
+
+write_sf(uk_auth, con, 'uk_authorities')
+
+```
+
+#### Set a spatial index
+To speed up queries on our spatial table we generally want to set a spatial index:
+```{r}
+dbSendQuery(con, 'CREATE INDEX auth_gpx ON uk_authorities USING GIST (geography(geometry))')
+```
+
+
+
+#### Querying a spatial table
+Because dplyr doesn't understand the column with class 'geometry', we cannot really query using the `tbl` method. 
+
+We will have to form the query ourselves, for example to get the local authority containing the point 51.5082, -0.0759 (Tower of London) we will have to use `glue_sql`:
+
+```{r}
+lat <-  51.5082
+lng <- -0.0759
+query <- glue_sql(
+  "SELECT * FROM uk_authorities
+  WHERE ST_INTERSECTS(geometry,ST_SetSRID(ST_MakePoint({lng},{lat}),4326))"
+  ,.con=con)
+
+tower_auth <- read_sf(con, query = query)
+tower_auth
+```
+Just for fun, visualise result:
+```{r}
+library(ggplot2)
+ggplot(tower_auth) +
+  geom_sf() +
+  geom_sf(data = st_as_sf(data.frame(lat, lng ), coords = c('lng','lat'), crs=4326), color='red') +
+  ggthemes::theme_map() 
+  
+```
+
+
+
+
+## Dump our db to a file
+cd to the directory we want to save the db dump in and run:
+```{bash eval = F}
+pg_dump --port=5432 --username=postgres --dbname=testdatabase --file=postgresdump.sql
+```
+
+
+
+## 3. Finally... close the connection
+Close the connection:
+
+```{r eval=FALSE}
+DBI::dbDisconnect(con)
+```
+
+
+Sometimes we can accumulate multiple connections, often resulting in the error that we've opened the *maximum number of connections*. We can loop through all of them and close them all:
+```{r}
+lapply(dbListConnections(PostgreSQL()), dbDisconnect)
+```
+
+#### Using on.exit
+Of course it's best practice to not accumulate connections in the first place. If using a function that opens a connection each time it's run, it's best to ensure it gets closed using `on.exit`:
+
+```{r}
+library(dplyr)
+library(dbplyr)
+db_fn <- function() {
+  on.exit(dbDisconnect(con))
+  con <- RPostgreSQL::dbConnect(RPostgreSQL::PostgreSQL(),
+                              dbname = "testdatabase",
+                              host = 'localhost',
+                              user = "postgres",
+                              password = Sys.getenv('PG_PASS'))
+  
+  tbl(con, 'iris_3') %>%
+    collect()
+}
+
+db_fn()
+
+```

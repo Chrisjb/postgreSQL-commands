@@ -1,0 +1,7 @@
+"0","tbl(con, 'iris_3') %>%
+  group_by(species) %>% 
+  summarise(avg_length = mean(sepal_length))
+"
+"2","Missing values are always removed in SQL.
+Use `mean(x, na.rm = TRUE)` to silence this warning
+This warning is displayed only once per session."

@@ -1,0 +1,9 @@
+"0","DBI::dbSendQuery(con, ""ALTER TABLE iris_1
+  DROP CONSTRAINT iris_pk;"")
+"
+"1","<"
+"1",""
+"1","PostgreSQLResult"
+"1",""
+"1",">
+"

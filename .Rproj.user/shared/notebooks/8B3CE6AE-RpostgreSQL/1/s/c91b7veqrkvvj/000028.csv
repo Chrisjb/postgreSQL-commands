@@ -1,0 +1,24 @@
+"0","lat <-  51.5082"
+"0","lng <- -0.0759"
+"0","query <- glue_sql("
+"0","  ""SELECT * FROM uk_authorities"
+"0","  WHERE ST_INTERSECTS(geometry,ST_SetSRID(ST_MakePoint({lng},{lat}),4326))"""
+"0","  ,.con=con)"
+"0",""
+"0","tower_auth <- read_sf(con, query = query)"
+"0","tower_auth"
+"1","Simple feature collection with 1 feature and 6 fields"
+"1","
+"
+"1","geometry type:  MULTIPOLYGON
+"
+"1","dimension:      XY
+"
+"1","bbox:           "
+"1","xmin: -0.07940341 ymin: 51.48599 xmax: 0.009089509 ymax: 51.54469"
+"1","
+"
+"1","epsg (SRID):    4326
+"
+"1","proj4string:    +proj=longlat +datum=WGS84 +no_defs
+"

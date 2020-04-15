@@ -1,0 +1,7 @@
+"0","DBI::dbSendQuery(con, 'drop table iris_2;')"
+"1","<"
+"1",""
+"1","PostgreSQLResult"
+"1",""
+"1",">
+"

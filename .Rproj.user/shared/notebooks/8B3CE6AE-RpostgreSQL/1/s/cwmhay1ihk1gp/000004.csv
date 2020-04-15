@@ -1,0 +1,7 @@
+"0","data(iris)"
+"0","dbWriteTable(con, 'iris_1', iris )"
+"2","table iris_1 exists in database: aborting assignTable"
+"1","[1]"
+"1"," FALSE"
+"1","
+"

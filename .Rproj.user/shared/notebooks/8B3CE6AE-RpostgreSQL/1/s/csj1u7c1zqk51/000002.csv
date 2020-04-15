@@ -1,0 +1,32 @@
+"0","dbGetQuery(con, 'create extension postgis;')"
+"2","Error in postgresqlExecStatement(conn, statement, ...) : 
+  RS-DBI driver: (could not Retrieve the result : ERROR:  extension ""postgis"" already exists
+)
+"
+"2","Could not create execute: create extension postgis;"
+"1","NULL
+"
+"0","dbGetQuery(con, 'create extension fuzzystrmatch;')"
+"2","Error in postgresqlExecStatement(conn, statement, ...) : 
+  RS-DBI driver: (could not Retrieve the result : ERROR:  extension ""fuzzystrmatch"" already exists
+)
+"
+"2","Could not create execute: create extension fuzzystrmatch;"
+"1","NULL
+"
+"0","dbGetQuery(con, 'create extension postgis_tiger_geocoder;')"
+"2","Error in postgresqlExecStatement(conn, statement, ...) : 
+  RS-DBI driver: (could not Retrieve the result : ERROR:  extension ""postgis_tiger_geocoder"" already exists
+)
+"
+"2","Could not create execute: create extension postgis_tiger_geocoder;"
+"1","NULL
+"
+"0","dbGetQuery(con, 'create extension postgis_topology;')"
+"2","Error in postgresqlExecStatement(conn, statement, ...) : 
+  RS-DBI driver: (could not Retrieve the result : ERROR:  extension ""postgis_topology"" already exists
+)
+"
+"2","Could not create execute: create extension postgis_topology;"
+"1","NULL
+"

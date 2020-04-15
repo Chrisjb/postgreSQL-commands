@@ -1,0 +1,5 @@
+"0","write_sf(con, 'uk_authorities', uk_auth)
+"
+"2","Error in UseMethod(""st_write"") : 
+  no applicable method for 'st_write' applied to an object of class ""c('PostgreSQLConnection', 'DBIConnection', 'PostgreSQLObject', 'DBIObject', 'dbObjectId')""
+"
