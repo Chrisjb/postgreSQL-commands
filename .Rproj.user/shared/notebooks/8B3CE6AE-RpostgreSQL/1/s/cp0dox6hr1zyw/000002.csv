@@ -1,7 +1,0 @@
-"0","dbSendQuery(con, 'CREATE INDEX auth_gpx ON uk_authorities USING GIST (geography(geometry))')"
-"1","<"
-"1",""
-"1","PostgreSQLResult"
-"1",""
-"1",">
-"

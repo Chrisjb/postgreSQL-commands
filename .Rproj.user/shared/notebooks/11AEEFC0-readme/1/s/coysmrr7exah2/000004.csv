@@ -1,8 +1,0 @@
-"0","# add duplicate data
-DBI::dbSendQuery(con, ""INSERT INTO population (date, country, population) VALUES ('2019', 'UK', 66.65);"")
-"
-"2","Error in postgresqlExecStatement(conn, statement, ...) : 
-  RS-DBI driver: (could not Retrieve the result : ERROR:  duplicate key value violates unique constraint ""nodup""
-DETAIL:  Key (date, country, population)=(2019, UK, 66.65) already exists.
-)
-"

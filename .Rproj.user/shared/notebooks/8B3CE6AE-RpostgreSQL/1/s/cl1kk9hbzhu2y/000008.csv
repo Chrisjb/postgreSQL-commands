@@ -1,8 +1,0 @@
-"0","DBI::dbSendQuery(con, 'ALTER TABLE iris_1 ADD CONSTRAINT iris_pk PRIMARY KEY (""row.names"");')
-"
-"1","<"
-"1",""
-"1","PostgreSQLResult"
-"1",""
-"1",">
-"

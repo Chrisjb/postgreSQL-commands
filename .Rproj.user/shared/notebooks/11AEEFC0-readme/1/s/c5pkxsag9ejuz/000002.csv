@@ -1,7 +1,0 @@
-"0","Sys.setenv('PG_PASS'='password')"
-"0","# or"
-"0","usethis::edit_r_environ()"
-"1","[31m●[39m Modify [34m'/Users/chrisbailey/.Renviron'[39m
-"
-"1","[31m●[39m Restart R for changes to take effect
-"

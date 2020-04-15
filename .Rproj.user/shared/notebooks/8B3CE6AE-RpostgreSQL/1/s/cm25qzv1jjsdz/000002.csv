@@ -1,5 +1,0 @@
-"0","con <- RPostgreSQL::dbConnect(RPostgreSQL::PostgreSQL(),"
-"0","                              dbname = ""testdatabase"","
-"0","                              host = 'localhost',"
-"0","                              user = ""postgres"","
-"0","                              password = Sys.getenv('PG_PASS'))"
