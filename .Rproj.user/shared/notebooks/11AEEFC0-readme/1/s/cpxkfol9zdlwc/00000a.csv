@@ -1,0 +1,11 @@
+"0","# create the table schema
+DBI::dbSendQuery(con, 'CREATE TABLE IF NOT EXISTS iris_3 (row_number INTEGER CONSTRAINT row_id PRIMARY KEY, 
+                 sepal_length NUMERIC, sepal_width NUMERIC, petal_length NUMERIC,
+                 petal_width NUMERIC, species VARCHAR(15));')
+"
+"1","<"
+"1",""
+"1","PostgreSQLResult"
+"1",""
+"1",">
+"
